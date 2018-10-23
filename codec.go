@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"log"
 	"reflect"
-)
+	)
 
 const (
 	TafHeadeChar        = 0
@@ -49,10 +49,10 @@ func (e *InvalidUnmarshalError) Error() string {
 
 func encodeHeaderTag(tag uint8, tagType uint8, buf *bytes.Buffer) {
 	if tag < 15 {
-		b := byte((tag << 4) + tagType)
+		b := byte((tag << 4) | tagType)
 		buf.Write([]byte{b})
 	} else {
-		b1 := byte(tagType + 240)
+		b1 := byte(tagType | 240)
 		b2 := byte(tag)
 		buf.Write([]byte{b1, b2})
 	}
@@ -77,7 +77,7 @@ func encodeTagInt8Value(buf *bytes.Buffer, tag uint8, bv int8) error {
 	return nil
 }
 func encodeTagShortValue(buf *bytes.Buffer, tag uint8, sv int16) error {
-	if sv < (-128) && sv <= 127 {
+	if sv >= (-128) && sv <= 127 {
 		return encodeTagInt8Value(buf, tag, int8(sv))
 	} else {
 		encodeHeaderTag(tag, uint8(TafHeadeShort), buf)
@@ -148,7 +148,7 @@ func encodeValueWithTag(buf *bytes.Buffer, tag uint8, v *reflect.Value) error {
 			rv := reflect.MakeSlice(v.Type(), 0, 0)
 			v = &rv
 		}
-		if v.Elem().Type().Kind() == reflect.Uint8 {
+		if v.Type().Elem().Kind() == reflect.Uint8 {
 			encodeHeaderTag(tag, uint8(TafHeadeSimpleList), buf)
 			encodeHeaderTag(0, uint8(TafHeadeChar), buf)
 			encodeTagIntValue(buf, 0, int32(v.Len()))
@@ -187,7 +187,7 @@ func encodeValueWithTag(buf *bytes.Buffer, tag uint8, v *reflect.Value) error {
 		rv := reflect.ValueOf(v.Interface())
 		return encodeValueWithTag(buf, tag, &rv)
 	case reflect.Struct:
-		encodeHeaderTag(tag, uint8(TafHeadeStructBegin), buf)
+		encodeHeaderTag(0, uint8(TafHeadeStructBegin), buf)
 		if reflect.PtrTo(v.Type()).Implements(tafStructType) {
 			if v.CanAddr() {
 				ts := v.Addr().Interface().(TafStruct)
